@@ -1,5 +1,28 @@
 # This file contains the list of changes across different versions
 
+## v2.8.0
+* Added feature of secure verification for esp-secure-cert partition.
+* It verifies whether the esp-secure-cert partition is signed or not, with signing-key.
+* It depends upon esp-idf secure boot, and follows the same flow.
+
+## v2.7.2
+* Removed unused mbedTLS header imports and adds support for mbedTLS v4.x
+
+## v2.7.1
+* Added a new API `esp_secure_cert_unmap_partition` to unmap the `esp_secure_cert` partition
+
+## v2.7.0
+* Added support for PSA APIs
+
+## v2.6.1
+* Update Kconfig to reflect the Digital Signature peripheral support
+
+##v2.6.0
+* Added TLV type for TEE Secure storage key
+
+## v2.5.1
+* Updated the esp_secure_cert_app Logging: If the certificates and keys are stored in binary form, the hexdump is printed on console.
+
 ## v2.5.0
 * Assigned 2 project specific entries for Matter project in the list of TLV entries
 

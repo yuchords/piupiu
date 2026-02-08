@@ -14,6 +14,10 @@
 #if __has_include("esp_idf_version.h")
 #include "esp_idf_version.h"
 
+#if ESP_IDF_VERSION <= ESP_IDF_VERSION_VAL(4, 4, 0)
+#include "esp_spi_flash.h"
+#endif
+
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0)
 #include "esp_random.h"
 #else
@@ -27,12 +31,6 @@
 #include "esp_fault.h"
 #include "esp_heap_caps.h"
 
-#include "mbedtls/gcm.h"
-#include "mbedtls/sha256.h"
-#include "mbedtls/ecdsa.h"
-#include "mbedtls/pk.h"
-#include "mbedtls/version.h"
-
 #include "esp_secure_cert_read.h"
 #include "esp_secure_cert_tlv_config.h"
 #include "esp_secure_cert_tlv_read.h"
@@ -43,23 +41,10 @@
 #include "esp_hmac.h"
 #endif
 
-#if (MBEDTLS_VERSION_NUMBER < 0x03000000)
-/* mbedtls 2.x backward compatibility */
-#define MBEDTLS_2X_COMPAT 1
-/**
- * Mbedtls-3.0 forward compatibility
- */
-#ifndef MBEDTLS_PRIVATE
-#define MBEDTLS_PRIVATE(member) member
-#endif
-#endif /* (MBEDTLS_VERSION_NUMBER < 0x03000000) */
-
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #include "spi_flash_mmap.h"
 #include "esp_memory_utils.h"
-#include "entropy_poll.h"
 #else
-#include "mbedtls/entropy_poll.h"
 #include "soc/soc_memory_layout.h"
 #endif
 
@@ -67,56 +52,86 @@
 
 static const char *TAG = "esp_secure_cert_tlv";
 
+esp_secure_cert_partition_ctx_t esp_secure_cert_partition_ctx = {0};
+
 #define MIN_ALIGNMENT_REQUIRED 16
 
 
 #if SOC_HMAC_SUPPORTED
 static esp_err_t esp_secure_cert_hmac_based_decryption(char *in_buf, uint32_t len, char *output_buf);
-static esp_err_t esp_secure_cert_gen_ecdsa_key(esp_secure_cert_tlv_subtype_t subtype, char *output_buf, size_t buf_len);
-#define ESP_SECURE_CERT_ECDSA_DER_KEY_SIZE  121
+static esp_err_t esp_secure_cert_gen_ecdsa_key(esp_secure_cert_tlv_subtype_t subtype, uint8_t *output_buf, size_t buf_len);
+
 #endif
+
+/*
+ * Unmap the esp_secure_cert partition
+ */
+void esp_secure_cert_unmap_partition(void)
+{
+    if (esp_secure_cert_partition_ctx.handle == 0) {
+        ESP_LOGW(TAG, "Handle is not initialized");
+        return;
+    }
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+    esp_partition_munmap(esp_secure_cert_partition_ctx.handle);
+#else
+    spi_flash_munmap(esp_secure_cert_partition_ctx.handle);
+#endif
+    esp_secure_cert_partition_ctx.handle = 0;
+    esp_secure_cert_partition_ctx.esp_secure_cert_mapped_addr = NULL;
+    esp_secure_cert_partition_ctx.partition = NULL;
+    return;
+}
 
 /* This is the mininum required flash address alignment in bytes to write to an encrypted flash partition */
 
 /*
- * Map the entire esp_secure_cert partition
- * and return the virtual address.
- *
- * @note
- * The mapping is done only once and function shall
- * simply return same address in case of successive calls.
- **/
-const void *esp_secure_cert_get_mapped_addr(void)
+ * Initialize the esp_secure_cert partition context.
+ * This function maps the entire esp_secure_cert partition and
+ * populates the context structure with partition information.
+ */
+esp_err_t esp_secure_cert_map_partition(esp_secure_cert_partition_ctx_t **ctx)
 {
-    // Once initialized, these variable shall contain valid data till reboot.
-    static const void *esp_secure_cert_mapped_addr;
-    if (esp_secure_cert_mapped_addr) {
-        return esp_secure_cert_mapped_addr;
+    // If already initialized, return immediately
+    if (esp_secure_cert_partition_ctx.esp_secure_cert_mapped_addr != NULL) {
+        ESP_LOGD(TAG, "Partition already mapped");
+        *ctx = &esp_secure_cert_partition_ctx;
+        return ESP_OK;
     }
 
     esp_partition_iterator_t it = esp_partition_find(ESP_SECURE_CERT_TLV_PARTITION_TYPE,
                                   ESP_PARTITION_SUBTYPE_ANY, ESP_SECURE_CERT_TLV_PARTITION_NAME);
     if (it == NULL) {
         ESP_LOGE(TAG, "Partition not found.");
-        return NULL;
+        esp_partition_iterator_release(it);
+        return ESP_FAIL;
     }
 
-    const esp_partition_t *partition = esp_partition_get(it);
-    if (partition == NULL) {
+    esp_secure_cert_partition_ctx.partition = esp_partition_get(it);
+    if (esp_secure_cert_partition_ctx.partition == NULL) {
         ESP_LOGE(TAG, "Could not get partition.");
-        return NULL;
+        esp_partition_iterator_release(it);
+        return ESP_FAIL;
     }
 
     /* Encrypted partitions need to be read via a cache mapping */
-    spi_flash_mmap_handle_t handle;
     esp_err_t err;
 
     /* Map the entire partition */
-    err = esp_partition_mmap(partition, 0, partition->size, SPI_FLASH_MMAP_DATA, &esp_secure_cert_mapped_addr, &handle);
+    err = esp_partition_mmap(esp_secure_cert_partition_ctx.partition, 0, esp_secure_cert_partition_ctx.partition->size, SPI_FLASH_MMAP_DATA,
+                             &esp_secure_cert_partition_ctx.esp_secure_cert_mapped_addr, &esp_secure_cert_partition_ctx.handle);
     if (err != ESP_OK) {
-        return NULL;
+        esp_partition_iterator_release(it);
+        it = NULL;
+        ESP_LOGE(TAG, "Failed to map partition: %d", err);
+        return ESP_FAIL;
     }
-    return esp_secure_cert_mapped_addr;
+    esp_partition_iterator_release(it);
+    it = NULL;
+    ESP_LOGD(TAG, "Partition mapped successfully");
+    *ctx = &esp_secure_cert_partition_ctx;
+    return ESP_OK;
 }
 
 /*
@@ -281,11 +296,19 @@ This function retrieves the header of a specific ESP Secure Certificate TLV reco
 static esp_err_t esp_secure_cert_tlv_get_header(esp_secure_cert_tlv_type_t type, uint8_t subtype, esp_secure_cert_tlv_header_t **tlv_header)
 {
     esp_err_t err = ESP_FAIL;
-    char *esp_secure_cert_addr = (char *)esp_secure_cert_get_mapped_addr();
+    esp_secure_cert_partition_ctx_t *esp_secure_cert_partition_ctx_ptr = NULL;
+    err = esp_secure_cert_map_partition(&esp_secure_cert_partition_ctx_ptr);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error in obtaining esp_secure_cert partition context");
+        return ESP_FAIL;
+    }
+
+    const char *esp_secure_cert_addr = (const char *)esp_secure_cert_partition_ctx_ptr->esp_secure_cert_mapped_addr;
     if (esp_secure_cert_addr == NULL) {
         ESP_LOGE(TAG, "Error in obtaining esp_secure_cert memory mapped address");
         return ESP_FAIL;
     }
+
     err = esp_secure_cert_find_tlv(esp_secure_cert_addr, type, subtype, (void **)tlv_header);
     if (err != ESP_OK) {
         ESP_LOGD(TAG, "Could not find the tlv of type %d and subtype %d", type, subtype);
@@ -309,7 +332,7 @@ esp_err_t esp_secure_cert_tlv_get_addr(esp_secure_cert_tlv_type_t type, esp_secu
     // and length is set to the total length of valid TLV entries
     if (type == ESP_SECURE_CERT_TLV_END) {
         *buffer = (char *)tlv_header;
-        const void *esp_secure_cert_addr = esp_secure_cert_get_mapped_addr();
+        const void *esp_secure_cert_addr = esp_secure_cert_partition_ctx.esp_secure_cert_mapped_addr;
         *len = (void*)tlv_header - esp_secure_cert_addr;
         return ESP_OK;
     }
@@ -346,7 +369,7 @@ esp_err_t esp_secure_cert_tlv_get_addr(esp_secure_cert_tlv_type_t type, esp_secu
             ESP_LOGE(TAG, "Failed to allocate memory");
             return ESP_ERR_NO_MEM;
         }
-        err = esp_secure_cert_gen_ecdsa_key(subtype, output_buf, ESP_SECURE_CERT_ECDSA_DER_KEY_SIZE);
+        err = esp_secure_cert_gen_ecdsa_key(subtype, (uint8_t *)output_buf, ESP_SECURE_CERT_ECDSA_DER_KEY_SIZE);
         if (err != ESP_OK) {
             free(output_buf);
             ESP_LOGE(TAG, "Failed to generate ECDSA key, returned %04X", err);
@@ -422,7 +445,15 @@ esp_err_t esp_secure_cert_iterate_to_next_tlv(esp_secure_cert_tlv_iterator_t *tl
     esp_secure_cert_tlv_header_t *tlv_header = (esp_secure_cert_tlv_header_t *)tlv_iterator->iterator;
     if (tlv_header == NULL) {
         ESP_LOGD(TAG, "tlv_header value is NULL, finding the first TLV entry");
-        tlv_header = (esp_secure_cert_tlv_header_t *) esp_secure_cert_get_mapped_addr();
+
+        esp_secure_cert_partition_ctx_t *esp_secure_cert_partition_ctx_ptr = NULL;
+        esp_err_t err = esp_secure_cert_map_partition(&esp_secure_cert_partition_ctx_ptr);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Error in obtaining esp_secure_cert partition context");
+            return ESP_FAIL;
+        }
+
+        tlv_header = (esp_secure_cert_tlv_header_t *)esp_secure_cert_partition_ctx_ptr->esp_secure_cert_mapped_addr;
         // Verify the TLV entry integrity before returning
         if (esp_secure_cert_verify_tlv_integrity(tlv_header)) {
             tlv_iterator->iterator = (void*)tlv_header;
@@ -543,7 +574,6 @@ esp_err_t esp_secure_cert_calculate_hmac_encryption_key(uint8_t *aes_key)
     return ESP_OK;
 }
 
-#define HMAC_ENCRYPTION_RANDOM_DELAY_LIMIT 100
 /*
  * @info
  * Decrypt the data encrypted using hmac based encryption
@@ -556,7 +586,6 @@ esp_err_t esp_secure_cert_calculate_hmac_encryption_key(uint8_t *aes_key)
 static esp_err_t esp_secure_cert_hmac_based_decryption(char *in_buf, uint32_t len, char *output_buf)
 {
     esp_err_t esp_ret = ESP_FAIL;
-    int ret = -1;
     uint8_t aes_gcm_key[HMAC_ENCRYPTION_AES_GCM_KEY_LEN];
     uint8_t iv[HMAC_ENCRYPTION_IV_LEN];
 
@@ -571,98 +600,16 @@ static esp_err_t esp_secure_cert_hmac_based_decryption(char *in_buf, uint32_t le
         return esp_ret;
     }
 
-    mbedtls_gcm_context gcm_ctx;
-    mbedtls_gcm_init(&gcm_ctx);
-    ret = mbedtls_gcm_setkey(&gcm_ctx, MBEDTLS_CIPHER_ID_AES, (unsigned char *)aes_gcm_key, HMAC_ENCRYPTION_AES_GCM_KEY_LEN * 8);
-    if (ret != 0) {
-        ESP_LOGE(TAG, "Failure at mbedtls_gcm_setkey with error code : -0x%04X", -ret);
-        mbedtls_gcm_free(&gcm_ctx);
-        return ESP_FAIL;
+    esp_ret = esp_secure_cert_crypto_gcm_decrypt((const uint8_t *)in_buf, len, (uint8_t *)output_buf, aes_gcm_key, HMAC_ENCRYPTION_AES_GCM_KEY_LEN, iv,
+                                                NULL, (const uint8_t *)(in_buf + len), HMAC_ENCRYPTION_TAG_LEN);
+    if (esp_ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to decrypt the data");
+        return esp_ret;
     }
-
-    uint32_t rand_delay;
-    rand_delay = esp_random() % HMAC_ENCRYPTION_RANDOM_DELAY_LIMIT;
-    esp_rom_delay_us(rand_delay);
-
-    len = len - HMAC_ENCRYPTION_TAG_LEN;
-    ret = mbedtls_gcm_auth_decrypt(&gcm_ctx, len, iv,
-                                   HMAC_ENCRYPTION_IV_LEN, NULL, 0,
-                                   (unsigned char *) (in_buf + len),
-                                   HMAC_ENCRYPTION_TAG_LEN,
-                                   (const unsigned char *)(in_buf),
-                                   (unsigned char *)output_buf);
-
-    if (ret != 0) {
-        ESP_LOGE(TAG, "Failed to decrypt the data, mbedtls_gcm_crypt_and_tag returned %02X", ret);
-        mbedtls_gcm_free(&gcm_ctx);
-        return ESP_FAIL;
-    }
-
-    ESP_FAULT_ASSERT(ret == ESP_OK);
 
     return ESP_OK;
 }
 
-static int myrand(void *rng_state, unsigned char *output, size_t len)
-{
-    size_t olen;
-    (void) olen;
-    return mbedtls_hardware_poll(rng_state, output, len, &olen);
-}
-
-/*
- * The API converts the 256 bit ECDSA key to DER format.
- * @input
- * key_buf      The readable buffer containing the plaintext key
- * key_buf_len  The length of the key buf in bytes
- * output_buf   The writable buffer to write the DER key
- * output_buf_len Length of the output buffer
- *
- */
-static esp_err_t esp_secure_cert_convert_key_to_der(char *key_buf, size_t key_buf_len, char* output_buf, size_t output_buf_len)
-{
-    esp_err_t ret = ESP_FAIL;
-    // Convert the private key to der
-    mbedtls_pk_context key;
-    mbedtls_pk_init(&key);
-    ret = mbedtls_pk_setup(&key, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY));
-    if (ret != 0) {
-        ESP_LOGE(TAG, "Failed to setup pk key, returned %04X", ret);
-        goto exit;
-    }
-
-    mbedtls_ecdsa_context *key_ctx = mbedtls_pk_ec(key);
-    ret = mbedtls_ecp_group_load(&key_ctx->MBEDTLS_PRIVATE(grp), MBEDTLS_ECP_DP_SECP256R1);
-    if (ret != 0) {
-        ESP_LOGE(TAG, "Failed to load the ecp group, returned %04X", ret);
-        goto exit;
-    }
-
-    ret = mbedtls_mpi_read_binary(&key_ctx->MBEDTLS_PRIVATE(d), (const unsigned char *) key_buf, key_buf_len);
-    if (ret != 0) {
-        ESP_LOGE(TAG, "Failed to read binary, returned %04X", ret);
-        goto exit;
-    }
-
-    // Calculate the public key
-    ret = mbedtls_ecp_mul(&key_ctx->MBEDTLS_PRIVATE(grp), &key_ctx->MBEDTLS_PRIVATE(Q), &key_ctx->MBEDTLS_PRIVATE(d), &key_ctx->MBEDTLS_PRIVATE(grp).G, myrand, NULL);
-    if (ret != 0) {
-        ESP_LOGE(TAG, "Failed to generate public key, returned %04X", ret);
-        goto exit;
-    }
-
-    // Write the private key in DER format
-    ret = mbedtls_pk_write_key_der(&key, (unsigned char *) output_buf, output_buf_len);
-    if (ret != ESP_SECURE_CERT_ECDSA_DER_KEY_SIZE) {
-        ESP_LOGE(TAG, "Failed to write the pem key, returned %04X", ret);
-        goto exit;
-    }
-    ret = ESP_OK;
-
-exit:
-    mbedtls_pk_free(&key);
-    return ret;
-}
 /*
  * @info
  * Generate the ECDSA private key (DER format) with help of the PBKDF2 hmac implementation.
@@ -675,7 +622,7 @@ exit:
  * buf_len     The length of the buffer in bytes. This must be exactly ESP_SECURE_CERT_ECDSA_DER_KEY_SIZE bytes.
  *
  */
-static esp_err_t esp_secure_cert_gen_ecdsa_key(esp_secure_cert_tlv_subtype_t subtype, char *output_buf, size_t buf_len)
+static esp_err_t esp_secure_cert_gen_ecdsa_key(esp_secure_cert_tlv_subtype_t subtype, uint8_t *output_buf, size_t buf_len)
 {
     esp_err_t err = ESP_FAIL;
     int ret = 0;
@@ -773,11 +720,18 @@ void esp_secure_cert_tlv_free_ds_ctx(esp_ds_data_ctx_t *ds_ctx)
 
 bool esp_secure_cert_is_tlv_partition(void)
 {
-    char *esp_secure_cert_addr = (char *)esp_secure_cert_get_mapped_addr();
+    esp_secure_cert_partition_ctx_t *esp_secure_cert_partition_ctx_ptr = NULL;
+    esp_err_t err = esp_secure_cert_map_partition(&esp_secure_cert_partition_ctx_ptr);
+    if (err != ESP_OK) {
+        return 0;
+    }
+
+    const char *esp_secure_cert_addr = (const char *)esp_secure_cert_partition_ctx_ptr->esp_secure_cert_mapped_addr;
     if (esp_secure_cert_addr == NULL) {
         return 0;
     }
-    esp_secure_cert_tlv_header_t *tlv_header = (esp_secure_cert_tlv_header_t *)(esp_secure_cert_addr );
+
+    esp_secure_cert_tlv_header_t *tlv_header = (esp_secure_cert_tlv_header_t *)(esp_secure_cert_addr);
     if (tlv_header->magic == ESP_SECURE_CERT_TLV_MAGIC) {
         ESP_LOGD(TAG, "TLV partition identified");
         return 1;
