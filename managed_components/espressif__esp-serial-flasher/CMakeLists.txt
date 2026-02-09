@@ -6,10 +6,6 @@ set(srcs
     src/md5_hash.c
     src/protocol.c
     src/slip.c
-        ../../main/include/my_mqtt.h
-        ../../main/my_mqtt.cpp
-        ../../main/include/my_parse.h
-        ../../main/my_parse.cpp
 )
 
 
