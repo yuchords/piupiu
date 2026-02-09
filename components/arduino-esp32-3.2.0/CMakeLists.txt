@@ -352,6 +352,12 @@ foreach(libname IN LISTS ARDUINO_ALL_LIBRARIES)
   endif()
 endforeach()
 
+
+list(APPEND ARDUINO_LIBRARIES_SRCS "libraries/ESP_I2S/src/ESP_I2S.cpp")
+list(APPEND ARDUINO_LIBRARIES_INCLUDEDIRS "libraries/ESP_I2S/src")
+
+
+
 set(includedirs variants/${CONFIG_ARDUINO_VARIANT}/ cores/esp32/ ${ARDUINO_LIBRARIES_INCLUDEDIRS})
 set(srcs ${CORE_SRCS} ${ARDUINO_LIBRARIES_SRCS})
 set(priv_includes cores/esp32/libb64)
