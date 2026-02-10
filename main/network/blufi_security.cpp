@@ -21,7 +21,7 @@
 #endif
 
 #include "esp_blufi_api.h"
-#include "wifi_manager.h"
+#include "net_manager.h"
 
 #include "mbedtls/aes.h"
 #include "mbedtls/dhm.h"

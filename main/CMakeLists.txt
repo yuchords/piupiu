@@ -5,7 +5,7 @@ file(GLOB_RECURSE LIB_SRCS
 )
 
 file(GLOB_RECURSE OUR_SRCS
-    "network/wifi_manager.cc"
+    "network/net_manager.cc"
     "network/blufi_security.cpp"
         "network/blufi_basic.cpp"
 )

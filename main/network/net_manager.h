@@ -32,7 +32,23 @@ esp_err_t esp_blufi_controller_deinit(void);
 
 
 
-class wifi_manager {
+class NetManager {
+private:
+    bool bConnected{false};
+
+public:
+    NetManager();
+
+    //获取wifi连接状态
+    bool get_connect_status() { return bConnected; }
+
+    //blufi连接管理
+    esp_err_t enter_blufi_mode(void);
+    esp_err_t exit_blufi_mode(void);
+
+    //蓝牙管理
+    esp_err_t enable_ble();
+    esp_err_t disable_ble();
 
 };
 
