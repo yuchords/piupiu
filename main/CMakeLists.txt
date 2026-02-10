@@ -4,11 +4,16 @@ file(GLOB_RECURSE LIB_SRCS
 
 )
 
+file(GLOB_RECURSE OUR_SRCS
+    "network/wifi_manager.cc"
+    "network/blufi_security.cpp"
+        "network/blufi_basic.cpp"
+)
 
 
 
-
-idf_component_register(SRCS ${LIB_SRCS} "main.cpp"
+idf_component_register(SRCS ${LIB_SRCS} ${OUR_SRCS} "main.cpp"
                     INCLUDE_DIRS "include" "../lib/pubsubclient/src"
+                    "network"
 
 )
