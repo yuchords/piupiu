@@ -4,11 +4,14 @@ file(GLOB_RECURSE LIB_SRCS
 
 )
 
+file(GLOB_RECURSE OUR_SRCS
+    "apps/*.cpp"
+    "audio/*.cpp"
+)
 
 
-
-
-idf_component_register(SRCS ${LIB_SRCS} "main.cpp"
+idf_component_register(SRCS ${LIB_SRCS} ${OUR_SRCS} "main.cpp"
                     INCLUDE_DIRS "../lib/pubsubclient/src"
-
+                    "apps"
+                    "audio"
 )
