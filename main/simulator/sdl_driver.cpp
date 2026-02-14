@@ -1,8 +1,8 @@
 #include "sdl_driver.h"
 #include <SDL2/SDL.h>
 
-#define WINDOW_WIDTH 320
-#define WINDOW_HEIGHT 240
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
 
 static SDL_Window * window;
 static SDL_Renderer * renderer;

@@ -6,6 +6,7 @@ file(GLOB_RECURSE LIB_SRCS
 
 file(GLOB_RECURSE OUR_SRCS
     "apps/*.cpp"
+    # "apps/app_base/*.cpp"
     "audio/*.cpp"
 )
 
