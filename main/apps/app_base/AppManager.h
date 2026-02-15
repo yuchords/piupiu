@@ -16,8 +16,23 @@ public:
     bool registerApp(AppBase* base, const char* name);
     bool unRegisterApp(const char* appName);
 
+    // Router
+
+
+    const char* getAppPrevName();
+
     
 private:
+    // App Pool
+    AppBase* findAppInPool(const char* name);
+
+    // App Stack
+    AppBase* findAppInStack(const char* name);
+    AppBase* getStackTop();
+    AppBase* getStackTopNext();
+    void setStackClear(bool keepBottom = false);
+
+
     AppFactory* _factory;
     std::vector<AppBase*> _appPool;
     std::stack<AppBase*> _appStack;
