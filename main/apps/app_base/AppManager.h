@@ -17,8 +17,10 @@ public:
     bool unRegisterApp(const char* appName);
 
     // Router
-
-
+    bool replaceApp(const char* name, const AppBase::AppStash* stash = nullptr);
+    bool pushApp(const char* name, const AppBase::AppStash* stash = nullptr);
+    bool popApp();
+    bool backToHome();
     const char* getAppPrevName();
 
     
@@ -31,7 +33,28 @@ private:
     AppBase* getStackTop();
     AppBase* getStackTopNext();
     void setStackClear(bool keepBottom = false);
+    bool forceUnLoad(AppBase* base);
 
+    /* Switch */
+    bool switchTo(AppBase* newApp, bool isEnterAct, const AppBase::AppStash* stash = nullptr);
+    // static void onSwitchAnimFinish(lv_anim_t* a);
+    // void switchAnimCreate(AppBase* base);
+    // void switchAnimTypeUpdate(AppBase* base);
+    // bool switchReqCheck();
+    // bool switchAnimStateCheck();
+
+    /* State */
+    AppBase::AppState stateLoadExecute(AppBase* base);
+    AppBase::AppState stateWillAppearExecute(AppBase* base);
+    AppBase::AppState stateDidAppearExecute(AppBase* base);
+    AppBase::AppState stateWillDisappearExecute(AppBase* base);
+    AppBase::AppState stateDidDisappearExecute(AppBase* base);
+    AppBase::AppState stateUnloadExecute(AppBase* base);
+    void stateUpdate(AppBase* base);
+    AppBase::AppState getState()
+    {
+        return _appCurrent->_state;
+    }
 
     AppFactory* _factory;
     std::vector<AppBase*> _appPool;
@@ -43,3 +66,5 @@ private:
 
 
 } ;
+
+

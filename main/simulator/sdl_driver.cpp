@@ -19,7 +19,7 @@ extern "C" void sdl_driver_init(void)
 
     window = SDL_CreateWindow("Piupiu Simulator",
                               SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                              WINDOW_WIDTH, WINDOW_HEIGHT, 0);       /*last param. SDL_WINDOW_BORDERLESS to hide borders*/
+                              WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -94,6 +94,14 @@ static void mouse_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 
     int x, y;
     const uint32_t btn = SDL_GetMouseState(&x, &y);
+
+    int win_w = 0;
+    int win_h = 0;
+    SDL_GetWindowSize(window, &win_w, &win_h);
+    if(win_w > 0 && win_h > 0) {
+        x = x * WINDOW_WIDTH / win_w;
+        y = y * WINDOW_HEIGHT / win_h;
+    }
 
     data->point.x = x;
     data->point.y = y;

@@ -3,23 +3,33 @@
 #include <SDL2/SDL.h>
 #include "lvgl.h"
 #include "sdl_driver.h"
-#include "../apps/AppLog.h" // User will create this
+#include "../apps/app_base/AppManager.h"
+#include "../apps/TestApp.h"
 
 int main(int argc, char *argv[])
 {
     (void) argc; /*Unused*/
     (void) argv; /*Unused*/
 
-    /*Initialize LVGL*/
     lv_init();
 
-    /*Initialize the HAL (display, input devices, tick) for LVGL*/
     sdl_driver_init();
 
-    /*Initialize the Log App directly for simulation*/
-    AppLog* app = new AppLog();
-    app->onViewLoad();
-    app->onViewAppear();
+    TestAppFactory factory;
+    AppManager manager(&factory);
+    manager.installApp("WatchHomeApp", "WatchHomeApp");
+    manager.installApp("WatchFaceApp", "WatchFaceApp");
+    manager.installApp("HealthApp", "HealthApp");
+    manager.installApp("NotificationsApp", "NotificationsApp");
+    manager.installApp("NotificationDetailApp", "NotificationDetailApp");
+    manager.installApp("WeatherApp", "WeatherApp");
+    manager.installApp("MusicApp", "MusicApp");
+    manager.installApp("TimerApp", "TimerApp");
+    manager.installApp("VoiceMemoApp", "VoiceMemoApp");
+    manager.installApp("CalculatorApp", "CalculatorApp");
+    manager.installApp("CalendarApp", "CalendarApp");
+    manager.installApp("ContactsApp", "ContactsApp");
+    manager.pushApp("WatchHomeApp", nullptr);
 
     /*Create a demo label to verify LVGL is working*/
     // lv_obj_t * label = lv_label_create(lv_scr_act());
@@ -27,8 +37,6 @@ int main(int argc, char *argv[])
     // lv_obj_center(label);
 
     while(1) {
-        /* Periodically call the lv_task handler.
-         * It could be done in a timer interrupt or an OS task too.*/
         lv_timer_handler();
         SDL_Delay(5);
 

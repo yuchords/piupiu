@@ -22,7 +22,7 @@ public:
         APP_STATE_UNLOAD
     };
 
-    // sta
+    // stash
     struct AppStash {
         void *ptr;
         uint32_t size;
@@ -35,12 +35,17 @@ public:
     void*       _userData;
 
 
+    AppBase();
     virtual ~AppBase() {}
     virtual void onCustomPreConfig() {}
     virtual void onViewLoad() {}
-    virtual void onViewAppear() {}
-    virtual void onViewDisappear() {}
+    virtual void onViewDidLoad() {}
+    virtual void onViewWillAppear() {}
+    virtual void onViewDidAppear() {}
+    virtual void onViewWillDisappear() {}
+    virtual void onViewDidDisappear() {}
     virtual void onViewUnLoad() {}
+    virtual void onViewDidUnLoad() {}
 
     /* Set whether to manually manage the cache */
     void setCustomCacheEnable(bool en);
@@ -54,7 +59,6 @@ public:
 
 // Only AppManager actually use bellow:
 private:
-    bool _reqEnableCache;
     bool _reqEnableCache;        // Cache enable request
     bool _reqDisableAutoCache;   // Automatic cache management enable request
 

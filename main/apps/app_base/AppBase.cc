@@ -1,4 +1,20 @@
 #include "AppBase.h"
+#include <cstring>
+
+AppBase::AppBase()
+    : _root(nullptr),
+      _manager(nullptr),
+      _name(nullptr),
+      _id(0),
+      _userData(nullptr),
+      _reqEnableCache(false),
+      _reqDisableAutoCache(false),
+      _isDisableAutoCache(false),
+      _isCached(false) {
+    _stash.ptr = nullptr;
+    _stash.size = 0;
+    _state = APP_STATE_IDLE;
+}
 
 void AppBase::setCustomCacheEnable(bool en) {
     setCustomAutoCacheEnable(false);
