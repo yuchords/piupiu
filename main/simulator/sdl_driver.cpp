@@ -103,6 +103,11 @@ static void mouse_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
         y = y * WINDOW_HEIGHT / win_h;
     }
 
+    if(x < 0) x = 0;
+    if(y < 0) y = 0;
+    if(x >= WINDOW_WIDTH) x = WINDOW_WIDTH - 1;
+    if(y >= WINDOW_HEIGHT) y = WINDOW_HEIGHT - 1;
+
     data->point.x = x;
     data->point.y = y;
 

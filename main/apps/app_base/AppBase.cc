@@ -1,4 +1,5 @@
 #include "AppBase.h"
+#include "AppLog.h"
 #include <cstring>
 
 AppBase::AppBase()
@@ -14,6 +15,11 @@ AppBase::AppBase()
     _stash.ptr = nullptr;
     _stash.size = 0;
     _state = APP_STATE_IDLE;
+    _anim.isEnter = false;
+    _anim.isBusy = false;
+    _anim.attr.type = 0;
+    _anim.attr.time = 0;
+    _anim.attr.path = nullptr;
 }
 
 void AppBase::setCustomCacheEnable(bool en) {
@@ -42,4 +48,10 @@ bool AppBase::stashExtract(void* ptr, uint32_t size) {
 
     return true;
 
+}
+
+void AppBase::setCustomLoadAnimType(uint8_t animType, uint16_t time, lv_anim_path_cb_t path) {
+    _anim.attr.type = animType;
+    _anim.attr.time = time;
+    _anim.attr.path = path;
 }

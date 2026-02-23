@@ -3,6 +3,11 @@ project(piupiu_sim)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Enable AddressSanitizer for simulator to catch memory errors
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+
 # Add definitions
 add_definitions(-DLV_CONF_INCLUDE_SIMPLE)
 add_definitions(-DLV_LVGL_H_INCLUDE_SIMPLE)
@@ -27,7 +32,7 @@ include_directories(${APP_BASE_DIR})
 
 # Source files
 file(GLOB_RECURSE LVGL_SOURCES ${LVGL_DIR}/src/*.c)
-file(GLOB APPS_SOURCES ${APPS_DIR}/*.cc ${APPS_DIR}/*.cpp)
+file(GLOB APPS_SOURCES ${APPS_DIR}/*.cc ${APPS_DIR}/*.cpp ${APPS_DIR}/src/*.cc ${APPS_DIR}/src/*.cpp)
 file(GLOB APP_BASE_SOURCES ${APP_BASE_DIR}/*.cc)
 
 set(SIM_SOURCES

@@ -29,7 +29,11 @@ int main(int argc, char *argv[])
     manager.installApp("CalculatorApp", "CalculatorApp");
     manager.installApp("CalendarApp", "CalendarApp");
     manager.installApp("ContactsApp", "ContactsApp");
-    manager.pushApp("WatchHomeApp", nullptr);
+    manager.installApp("LifecycleApp", "LifecycleApp");
+    manager.installApp("CachePersistApp", "CachePersistApp");
+    manager.installApp("StashReceiverApp", "StashReceiverApp");
+    manager.installApp("TestMenuApp", "TestMenuApp");
+    manager.pushApp("TestMenuApp", nullptr);
 
     /*Create a demo label to verify LVGL is working*/
     // lv_obj_t * label = lv_label_create(lv_scr_act());

@@ -10,7 +10,7 @@ class AppBase {
 
 public:
 
-    // Apps status enum
+    /* Apps status enum */
     enum AppState {
         APP_STATE_IDLE,
         APP_STATE_LOAD,
@@ -22,22 +22,24 @@ public:
         APP_STATE_UNLOAD
     };
 
-    // stash
+    /* App stash */
     struct AppStash {
         void *ptr;
         uint32_t size;
     };
 
-    lv_obj_t*   _root;
-    AppManager* _manager;
-    const char* _name;
-    uint16_t    _id;
-    void*       _userData;
+    struct AnimAttr {
+        uint8_t type;
+        uint16_t time;
+        lv_anim_path_cb_t path;
+    };
 
+    lv_obj_t* getRoot() const { return _root; }
+    AppManager* getManager() const { return _manager; }
 
     AppBase();
     virtual ~AppBase() {}
-    virtual void onCustomPreConfig() {}
+    virtual void onCustomPreConfig() {} // install app时在自定义配置前调用
     virtual void onViewLoad() {}
     virtual void onViewDidLoad() {}
     virtual void onViewWillAppear() {}
@@ -56,16 +58,39 @@ public:
     /* Extract the data from stash area */
     bool stashExtract(void* ptr, uint32_t size);
 
+    void setCustomLoadAnimType(uint8_t animType, uint16_t time = 500, lv_anim_path_cb_t path = lv_anim_path_ease_out);
 
-// Only AppManager actually use bellow:
+
+    /* Only AppManager actually use bellow: */
 private:
-    bool _reqEnableCache;        // Cache enable request
-    bool _reqDisableAutoCache;   // Automatic cache management enable request
+    /* App view */
+    lv_obj_t*   _root;
+    AppManager* _manager;
+    const char* _name;
+    uint16_t    _id;
+    void*       _userData;
 
-    bool _isDisableAutoCache;    // Whether it is automatic cache management
-    bool _isCached;              // Cache enable
+    /* Cache enable request */
+    bool _reqEnableCache;        
+    /* Automatic cache management enable request */
+    bool _reqDisableAutoCache;   
 
-    AppStash _stash;              // Stash area
-    AppState _state;              // App state
+    /* Whether it is automatic cache management */
+    bool _isDisableAutoCache;    
+    /* Cache enable */
+    bool _isCached;              
+
+    /* Stash area */
+    AppStash _stash;              
+    /* App state */
+    AppState _state;              
+
+    struct AnimRuntime {
+        bool isEnter;
+        bool isBusy;
+        AnimAttr attr;
+    };
+
+    AnimRuntime _anim;
 
 } ;
