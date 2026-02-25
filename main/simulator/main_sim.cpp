@@ -4,7 +4,7 @@
 #include "lvgl.h"
 #include "sdl_driver.h"
 #include "../apps/app_base/AppManager.h"
-#include "../apps/TestApp.h"
+#include "../apps/main_menu/MainMenuApp.h"
 
 int main(int argc, char *argv[])
 {
@@ -15,25 +15,10 @@ int main(int argc, char *argv[])
 
     sdl_driver_init();
 
-    TestAppFactory factory;
+    MainMenuFactory factory;
     AppManager manager(&factory);
-    manager.installApp("WatchHomeApp", "WatchHomeApp");
-    manager.installApp("WatchFaceApp", "WatchFaceApp");
-    manager.installApp("HealthApp", "HealthApp");
-    manager.installApp("NotificationsApp", "NotificationsApp");
-    manager.installApp("NotificationDetailApp", "NotificationDetailApp");
-    manager.installApp("WeatherApp", "WeatherApp");
-    manager.installApp("MusicApp", "MusicApp");
-    manager.installApp("TimerApp", "TimerApp");
-    manager.installApp("VoiceMemoApp", "VoiceMemoApp");
-    manager.installApp("CalculatorApp", "CalculatorApp");
-    manager.installApp("CalendarApp", "CalendarApp");
-    manager.installApp("ContactsApp", "ContactsApp");
-    manager.installApp("LifecycleApp", "LifecycleApp");
-    manager.installApp("CachePersistApp", "CachePersistApp");
-    manager.installApp("StashReceiverApp", "StashReceiverApp");
-    manager.installApp("TestMenuApp", "TestMenuApp");
-    manager.pushApp("TestMenuApp", nullptr);
+    manager.installApp("MainMenuApp", "MainMenuApp");
+    manager.pushApp("MainMenuApp", nullptr);
 
     /*Create a demo label to verify LVGL is working*/
     // lv_obj_t * label = lv_label_create(lv_scr_act());

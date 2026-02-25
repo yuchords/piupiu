@@ -32,7 +32,13 @@ include_directories(${APP_BASE_DIR})
 
 # Source files
 file(GLOB_RECURSE LVGL_SOURCES ${LVGL_DIR}/src/*.c)
-file(GLOB APPS_SOURCES ${APPS_DIR}/*.cc ${APPS_DIR}/*.cpp ${APPS_DIR}/src/*.cc ${APPS_DIR}/src/*.cpp)
+file(GLOB APPS_SOURCES
+    ${APPS_DIR}/*.cc
+    ${APPS_DIR}/*.cpp
+    ${APPS_DIR}/src/*.cc
+    ${APPS_DIR}/src/*.cpp
+    ${APPS_DIR}/main_menu/*.cc
+)
 file(GLOB APP_BASE_SOURCES ${APP_BASE_DIR}/*.cc)
 
 set(SIM_SOURCES

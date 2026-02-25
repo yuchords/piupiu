@@ -39,14 +39,58 @@ public:
 
     AppBase();
     virtual ~AppBase() {}
-    virtual void onCustomPreConfig() {} // install app时在自定义配置前调用
+    /**
+     * @brief 应用初始化前的自定义配置
+     * @note 在 installApp 时调用，此时 _root 尚未创建
+     */
+    virtual void onCustomPreConfig() {} 
+
+    /**
+     * @brief 视图加载
+     * @note 此时 _root 已创建，可以在此进行 UI 构建
+     */
     virtual void onViewLoad() {}
+
+    /**
+     * @brief 视图加载完成
+     * @note UI 构建完成后的回调
+     */
     virtual void onViewDidLoad() {}
+
+    /**
+     * @brief 视图即将显示
+     * @note 切换动画开始前调用
+     */
     virtual void onViewWillAppear() {}
+
+    /**
+     * @brief 视图已经显示
+     * @note 切换动画结束后调用
+     */
     virtual void onViewDidAppear() {}
+
+    /**
+     * @brief 视图即将消失
+     * @note 退出动画开始前调用
+     */
     virtual void onViewWillDisappear() {}
+
+    /**
+     * @brief 视图已经消失
+     * @note 退出动画结束后调用
+     */
     virtual void onViewDidDisappear() {}
+
+    /**
+     * @brief 视图卸载
+     * @note 销毁 UI 资源
+     */
     virtual void onViewUnLoad() {}
+
+    /**
+     * @brief 视图卸载完成
+     * @note UI 资源销毁后的回调
+     */
     virtual void onViewDidUnLoad() {}
 
     /* Set whether to manually manage the cache */

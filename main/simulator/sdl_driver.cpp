@@ -1,15 +1,15 @@
 #include "sdl_driver.h"
 #include <SDL2/SDL.h>
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH 240
+#define WINDOW_HEIGHT 240
 
 static SDL_Window * window;
 static SDL_Renderer * renderer;
 static SDL_Texture * texture;
-static uint32_t * tft_fb;
 
 static void monitor_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p);
+static void monitor_cb(lv_disp_drv_t * disp_drv, uint32_t time, uint32_t px);
 static void mouse_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data);
 
 extern "C" void sdl_driver_init(void)
@@ -21,18 +21,18 @@ extern "C" void sdl_driver_init(void)
                               SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                               WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, WINDOW_WIDTH, WINDOW_HEIGHT);
-    tft_fb = (uint32_t*)malloc(WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(uint32_t));
 
     /*Initialize the display*/
     static lv_disp_draw_buf_t disp_buf;
-    static lv_color_t buf[WINDOW_WIDTH * 10]; /*Declare a buffer for 10 lines*/
-    lv_disp_draw_buf_init(&disp_buf, buf, NULL, WINDOW_WIDTH * 10);    /*Initialize the display buffer*/
+    static lv_color_t buf[WINDOW_WIDTH * 40]; /*Declare a buffer for 40 lines*/
+    lv_disp_draw_buf_init(&disp_buf, buf, NULL, WINDOW_WIDTH * 40);    /*Initialize the display buffer*/
 
     static lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);            /*Basic initialization*/
     disp_drv.flush_cb = monitor_flush;    /*Set your driver function*/
+    disp_drv.monitor_cb = monitor_cb;     /*Set the monitor function to update the screen*/
     disp_drv.draw_buf = &disp_buf;          /*Assign the buffer to the display*/
     disp_drv.hor_res = WINDOW_WIDTH;       /*Set the horizontal resolution*/
     disp_drv.ver_res = WINDOW_HEIGHT;      /*Set the vertical resolution*/
@@ -65,22 +65,32 @@ static void monitor_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_c
         return;
     }
 
-    int32_t y;
-    int32_t x;
-    for(y = area->y1; y <= area->y2 && y < disp_drv->ver_res; y++) {
-        for(x = area->x1; x <= area->x2; x++) {
-            tft_fb[y * WINDOW_WIDTH + x] = lv_color_to32(*color_p);
-            color_p++;
-        }
-    }
+    int32_t w = area->x2 - area->x1 + 1;
+    int32_t h = area->y2 - area->y1 + 1;
+    SDL_Rect rect;
+    rect.x = area->x1;
+    rect.y = area->y1;
+    rect.w = w;
+    rect.h = h;
 
-    SDL_UpdateTexture(texture, NULL, tft_fb, WINDOW_WIDTH * sizeof(uint32_t));
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
+    SDL_UpdateTexture(texture, &rect, color_p, w * sizeof(lv_color_t));
 
     /*IMPORTANT! It must be called to tell the system the flush is ready*/
     lv_disp_flush_ready(disp_drv);
+}
+
+/**
+ * Called when the frame is flushed (all chunks are rendered)
+ */
+static void monitor_cb(lv_disp_drv_t * disp_drv, uint32_t time, uint32_t px)
+{
+    (void)disp_drv;
+    (void)time;
+    (void)px;
+
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
 }
 
 /**

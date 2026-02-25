@@ -7,6 +7,7 @@
 #define AM_INDEV_DEF_DRAG_THROW 20
 #define AM_CONSTRAIN(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
+
 AppManager::AppManager(AppFactory* factory) 
     : _factory(factory)
     , _appPrev(nullptr)
@@ -16,10 +17,16 @@ AppManager::AppManager(AppFactory* factory)
     setGlobalLoadAnimType();
 }
 
+
 AppManager::~AppManager() {
     setStackClear();
 }
 
+/**
+ * @brief 查找app实例,从对象池查找
+ * @param name app实例名
+ * @return AppBase* app实例指针
+ */
 AppBase* AppManager::findAppInPool(const char* name) {
     for (auto ptr : _appPool) {
         if (strcmp(name, ptr->_name) == 0) {
@@ -29,6 +36,11 @@ AppBase* AppManager::findAppInPool(const char* name) {
     return nullptr;
 }
 
+/**
+ * @brief 查找app实例,从栈查找
+ * @param name app实例名
+ * @return AppBase* app实例指针
+ */
 AppBase* AppManager::findAppInStack(const char* name) {
     decltype(_appStack) stack = _appStack;
     while(!stack.empty()) {
@@ -41,7 +53,7 @@ AppBase* AppManager::findAppInStack(const char* name) {
     return nullptr;
 }
 
-/*
+/**
  * @brief 安装app,app实例被创建并加入对象池,但尚未推入栈,没有视图
  * @param className app类名
  * @param appName app实例名
@@ -84,7 +96,7 @@ bool AppManager::installApp(const char* className, const char* appName) {
     return rtval;
 }
 
-/*
+/**
  * @brief 卸载app,从对象池移除,并销毁其本身,不可再用
  * @param appName app实例名
  * @return true 卸载成功
@@ -115,7 +127,7 @@ bool AppManager::unInstallApp(const char* appName) {
     return true;
 }
 
-/*
+/**
  * @brief 注册app到池
  * @param base app实例指针
  * @param name app实例名
@@ -136,7 +148,7 @@ bool AppManager::registerApp(AppBase* base, const char* name) {
     return true;
 }
 
-/*
+/**
  * @brief 从池中注销app
  * @param name app实例名
  * @return true 注销成功
@@ -173,7 +185,7 @@ bool AppManager::unRegisterApp(const char* name) {
 
 }
 
-/*
+/**
  * @brief 获取栈顶app
  * @return AppBase* 栈顶app指针
  */
@@ -181,7 +193,7 @@ AppBase* AppManager::getStackTop() {
     return _appStack.empty() ? nullptr : _appStack.top();
 }
 
-/*
+/**
  * @brief 获取栈顶下一个app
  * @return AppBase* 栈顶下一个app指针
  */
@@ -203,7 +215,7 @@ AppBase* AppManager::getStackTopNext() {
     
 }
 
-/*
+/**
  * @brief 清空栈内所有app但不销毁其本身    
  * @param keepBottom 是否保留栈底app,默认不保留
  */
@@ -236,7 +248,7 @@ void AppManager::setStackClear(bool keepBottom) {
     AM_LOG_INFO("AppManager::setStackClear: stack clear success.");
 }
 
-/*
+/**
  * @brief 获取栈顶下一个app名
  * @return const char* 栈顶下一个app名
  */
@@ -244,10 +256,7 @@ const char* AppManager::getAppPrevName() {
     return _appPrev ? _appPrev->_name : AM_EMPTY_APP_NAME;
 }
 
-// state machine and functions
-/**********************************************************************************************/
-
-/*
+/**
  * @brief 更新app状态
  * @param base app实例指针
  */
@@ -263,6 +272,9 @@ void AppManager::stateUpdate(AppBase* base) {
         break;
 
     case AppBase::APP_STATE_LOAD:
+        /**
+         * @brief 加载app,执行加载动画,加载完成后进入WILL_APPEAR状态
+         */
         base->_state = stateLoadExecute(base);
         stateUpdate(base);
         break;
@@ -302,7 +314,7 @@ void AppManager::stateUpdate(AppBase* base) {
    }
 }
 
-/*
+/**
  * @brief 加载app
  * @param base app实例指针
  * @return AppBase::AppState 下一个状态
@@ -350,7 +362,7 @@ AppBase::AppState AppManager::stateLoadExecute(AppBase* base) {
 
 }
 
-/*
+/**
  * @brief 显示app
  * @param base app实例指针
  * @return AppBase::AppState 下一个状态
@@ -362,7 +374,7 @@ AppBase::AppState AppManager::stateWillAppearExecute(AppBase* base) {
     return AppBase::APP_STATE_DID_APPEAR;
 }
 
-/*
+/**
  * @brief 显示app完成
  * @param base app实例指针
  * @return AppBase::AppState 下一个状态
@@ -372,7 +384,7 @@ AppBase::AppState AppManager::stateDidAppearExecute(AppBase* base) {
     return AppBase::APP_STATE_ACTIVITY;
 }
 
-/*
+/**
  * @brief 隐藏app
  * @param base app实例指针
  * @return AppBase::AppState 下一个状态
@@ -383,7 +395,7 @@ AppBase::AppState AppManager::stateWillDisappearExecute(AppBase* base) {
     return AppBase::APP_STATE_DID_DISAPPEAR;
 }
 
-/*
+/** 
  * @brief 隐藏app完成
  * @param base app实例指针
  * @return AppBase::AppState 下一个状态
@@ -433,7 +445,7 @@ Exit:
 }
 
 
-/*
+/**
  * @brief 替换app
  * @param name app名
  * @param stash app stash指针
@@ -486,7 +498,7 @@ bool AppManager::replaceApp(const char* name, const AppBase::AppStash* stash) {
     return switchTo(base, true, stash); 
 }
 
-/*
+/**
  * @brief 压栈
  * @param name app名
  * @param stash app stash指针
@@ -517,7 +529,7 @@ bool AppManager::pushApp(const char* name, const AppBase::AppStash* stash) {
     return switchTo(base, true, stash);
 }
 
-/*
+/**
  * @brief 弹栈
  * @return true 弹栈成功
  * @return false 弹栈失败
@@ -556,7 +568,7 @@ bool AppManager::popApp() {
     return switchTo(top, false, nullptr);
 }
 
-/*
+/**
  * @brief 切换app
  * @param newApp 新app指针
  * @param isEnterAct 是否是进入app
@@ -648,7 +660,7 @@ bool AppManager::switchTo(AppBase* newApp, bool isEnterAct, const AppBase::AppSt
 
 }
 
-/*
+/**
  * @brief 返回首页
  * @return true 返回成功
  * @return false 返回失败
@@ -669,6 +681,12 @@ bool AppManager::backToHome() {
     return true;
 }
 
+/**
+ * @brief 设置全局加载动画类型
+ * @param anim 动画类型
+ * @param time 动画时间
+ * @param path 动画路径回调函数
+ */
 void AppManager::setGlobalLoadAnimType(
     LoadAnim anim, uint16_t time, lv_anim_path_cb_t path) {
     _animState.global.type = anim;
@@ -676,6 +694,13 @@ void AppManager::setGlobalLoadAnimType(
     _animState.global.path = path;
 }
 
+/**
+ * @brief 获取加载动画属性
+ * @param anim 动画类型
+ * @param attr 动画属性指针
+ * @return true 获取成功
+ * @return false 获取失败
+ */
 bool AppManager::getLoadAnimAttr(uint8_t anim, LoadAnimAttr* attr) {
     if (anim > _LOAD_ANIM_LAST || attr == nullptr) {
         return false;
@@ -827,6 +852,10 @@ bool AppManager::getLoadAnimAttr(uint8_t anim, LoadAnimAttr* attr) {
     return true;
 }
 
+/**
+ * @brief 默认动画初始化
+ * @param a 动画对象指针
+ */
 void AppManager::animDefaultInit(lv_anim_t* a) {
     lv_anim_init(a);
     lv_anim_set_time(a, _animState.current.time);
@@ -857,6 +886,10 @@ static int32_t appManagerRootDragGetterY(void* obj) {
     return lv_obj_get_y(root);
 }
 
+/**
+ * @brief 启用根对象拖拽
+ * @param root 根对象指针
+ */
 void AppManager::rootEnableDrag(lv_obj_t* root) {
     AppBase* base = static_cast<AppBase*>(lv_obj_get_user_data(root));
     if (!base) {
@@ -901,6 +934,10 @@ void AppManager::onRootAsyncLeave(void* basePtr) {
     lv_event_send(base->_root, LV_EVENT_LEAVE, base);
 }
 
+/**
+ * @brief 根对象拖拽动画结束回调
+ * @param a 动画对象指针
+ */
 void AppManager::onRootDragAnimFinish(lv_anim_t* a) {
     AppManager* manager = static_cast<AppManager*>(lv_anim_get_user_data(a));
     if (!manager) {
@@ -915,6 +952,10 @@ void AppManager::onRootDragAnimFinish(lv_anim_t* a) {
     }
 }
 
+/**
+ * @brief 根对象拖拽事件回调
+ * @param event LVGL事件对象
+ */
 void AppManager::onRootDragEvent(lv_event_t* event) {
     lv_event_code_t eventCode = lv_event_get_code(event);
 
@@ -1005,6 +1046,10 @@ void AppManager::onRootDragEvent(lv_event_t* event) {
     }
 }
 
+/**
+ * @brief 切换动画结束回调
+ * @param a 动画对象指针
+ */
 void AppManager::onSwitchAnimFinish(lv_anim_t* a) {
     AppBase* base = static_cast<AppBase*>(lv_anim_get_user_data(a));
     if (!base || !base->_manager) {
@@ -1024,6 +1069,10 @@ void AppManager::onSwitchAnimFinish(lv_anim_t* a) {
     }
 }
 
+/**
+ * @brief 创建切换动画
+ * @param base AppBase指针
+ */
 void AppManager::switchAnimCreate(AppBase* base) {
     if (!base || !base->_root) {
         return;
@@ -1121,6 +1170,11 @@ bool AppManager::switchReqCheck() {
     return ret;
 }
 
+/**
+ * @brief 检查切换动画状态
+ * @return true 状态正常
+ * @return false 状态异常（忙碌）
+ */
 bool AppManager::switchAnimStateCheck() {
     if (_animState.isSwitchReq || _animState.isBusy) {
         AM_LOG_WARN(
@@ -1133,7 +1187,7 @@ bool AppManager::switchAnimStateCheck() {
     return true;
 }
 
-/*
+/**
  * @brief 强制卸载app
  * @param base app指针
  * @return true 卸载成功
