@@ -11,6 +11,44 @@ static SDL_Texture * texture;
 static void monitor_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p);
 static void monitor_cb(lv_disp_drv_t * disp_drv, uint32_t time, uint32_t px);
 static void mouse_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data);
+static void keypad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data);
+
+static uint32_t keypad_key = 0;
+static lv_indev_state_t keypad_state = LV_INDEV_STATE_RELEASED;
+
+static uint32_t keycode_to_ctrl_key(SDL_Keycode sdl_key)
+{
+    switch(sdl_key) {
+        case SDLK_UP: return LV_KEY_PREV;
+        case SDLK_DOWN: return LV_KEY_NEXT;
+        case SDLK_RIGHT: return LV_KEY_NEXT;
+        case SDLK_LEFT: return LV_KEY_PREV;
+        case SDLK_ESCAPE: return LV_KEY_ESC;
+        case SDLK_DELETE: return LV_KEY_DEL;
+        case SDLK_BACKSPACE: return LV_KEY_BACKSPACE;
+        case SDLK_RETURN:
+        case SDLK_KP_ENTER: return LV_KEY_ENTER;
+        case SDLK_TAB: return LV_KEY_NEXT;
+        case SDLK_HOME: return LV_KEY_HOME;
+        case SDLK_END: return LV_KEY_END;
+        default: return sdl_key;
+    }
+}
+
+extern "C" void sdl_driver_event_handler(SDL_Event * event)
+{
+    switch(event->type) {
+        case SDL_KEYDOWN:
+            keypad_state = LV_INDEV_STATE_PRESSED;
+            keypad_key = keycode_to_ctrl_key(event->key.keysym.sym);
+            break;
+        case SDL_KEYUP:
+            keypad_state = LV_INDEV_STATE_RELEASED;
+            break;
+        default:
+            break;
+    }
+}
 
 extern "C" void sdl_driver_init(void)
 {
@@ -44,6 +82,17 @@ extern "C" void sdl_driver_init(void)
     indev_drv.type = LV_INDEV_TYPE_POINTER;    /*Touch pad is a pointer-like device*/
     indev_drv.read_cb = mouse_read;            /*Set your driver function*/
     lv_indev_drv_register(&indev_drv);         /*Finally register the driver*/
+
+    /*Initialize the keypad driver*/
+    static lv_indev_drv_t keypad_drv;
+    lv_indev_drv_init(&keypad_drv);
+    keypad_drv.type = LV_INDEV_TYPE_KEYPAD;
+    keypad_drv.read_cb = keypad_read;
+    lv_indev_t * keypad_indev = lv_indev_drv_register(&keypad_drv);
+    
+    lv_group_t * g = lv_group_create();
+    lv_group_set_default(g);
+    lv_indev_set_group(keypad_indev, g);
 }
 
 /**
@@ -126,6 +175,16 @@ static void mouse_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
+}
+
+/**
+ * Read the keypad input
+ */
+static void keypad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
+{
+    (void) indev_drv;      /*Unused*/
+    data->state = keypad_state;
+    data->key = keypad_key;
 }
 
 extern "C" uint32_t custom_tick_get(void)

@@ -1,4 +1,6 @@
 #include "MainMenuApp.h"
+#include "../clock_app/ClockApp.h"
+#include "../settings/SettingsApp.h"
 #include <cstring>
 #include <cstdio>
 #include <cmath>
@@ -22,12 +24,13 @@ static const lv_color_t ICON_COLORS[] = {
 MainMenuApp::MainMenuApp()
     : _mainCont(nullptr) {
     
-    // Initialize dummy apps
+    // Initialize apps
+    // HoloCubic usually has apps like: Weather, Album, Bilibili, 2048, Settings
+    // For now we only have Clock implemented.
     const char* appNames[] = {
-        "Finder", "Launchpad", "Safari", "Messages", "Mail", "Maps", 
-        "Photos", "FaceTime", "Calendar", "Contacts", "Reminders", "Notes",
-        "Music", "Podcasts", "TV", "Books", "App Store", "System Settings",
-        "News", "Stocks", "Home", "Calculator", "Voice Memos", "Clock"
+        "Clock",
+        "Settings",
+        "WiFi"
     };
 
     int colorIdx = 0;
@@ -35,7 +38,18 @@ MainMenuApp::MainMenuApp()
         AppItem item;
         item.name = name;
         item.appId = name; // Just use name as ID for now
-        item.icon = nullptr; // Use color placeholder
+        
+        // Select icon based on name
+        if (strcmp(name, "Clock") == 0) {
+            item.icon = LV_SYMBOL_BELL;
+        } else if (strcmp(name, "Settings") == 0) {
+            item.icon = LV_SYMBOL_SETTINGS;
+        } else if (strcmp(name, "WiFi") == 0) {
+            item.icon = LV_SYMBOL_WIFI;
+        } else {
+            item.icon = LV_SYMBOL_FILE;
+        }
+
         item.color = ICON_COLORS[colorIdx % (sizeof(ICON_COLORS) / sizeof(lv_color_t))];
         _apps.push_back(item);
         colorIdx++;
@@ -66,11 +80,9 @@ void MainMenuApp::onViewLoad() {
     lv_obj_set_scrollbar_mode(_mainCont, LV_SCROLLBAR_MODE_OFF);
     
     // Add padding to ensure first and last items can be centered
-    // We assume screen width around 240-320px. 
-    // Setting large horizontal padding ensures the first item can be in the center.
-    lv_obj_set_style_pad_hor(_mainCont, LV_HOR_RES / 2, 0); 
+    lv_obj_set_style_pad_hor(_mainCont, LV_HOR_RES / 2 - 60, 0); // 60 is half item width roughly
     lv_obj_set_style_pad_ver(_mainCont, 0, 0);
-    lv_obj_set_style_pad_gap(_mainCont, 40, 0); // Gap between items
+    lv_obj_set_style_pad_gap(_mainCont, 60, 0); // Larger gap for cleaner look
 
     // Add scroll event for zoom effect
     lv_obj_add_event_cb(_mainCont, onScrollEvent, LV_EVENT_SCROLL, nullptr);
@@ -84,22 +96,26 @@ void MainMenuApp::onViewLoad() {
     lv_event_send(_mainCont, LV_EVENT_SCROLL, nullptr);
     
     // Scroll to the first item (center it)
-    lv_obj_scroll_to_view(lv_obj_get_child(_mainCont, 0), LV_ANIM_OFF);
+    if (lv_obj_get_child_cnt(_mainCont) > 0) {
+        lv_obj_scroll_to_view(lv_obj_get_child(_mainCont, 0), LV_ANIM_OFF);
+    }
 }
 
 void MainMenuApp::createMenuItem(lv_obj_t* parent, const AppItem& item) {
     // Item Container
     lv_obj_t* cont = lv_obj_create(parent);
     lv_obj_remove_style_all(cont);
-    lv_obj_set_size(cont, 140, 180); // Adjust size as needed
+    lv_obj_set_size(cont, 120, 160); // Adjust size
     lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_gap(cont, 15, 0);
+    lv_obj_set_style_pad_gap(cont, 20, 0);
 
-    // Make it clickable
+    // Make it clickable and focusable for keypad
     lv_obj_add_flag(cont, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(cont, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
-
+    lv_obj_set_style_outline_width(cont, 0, LV_STATE_FOCUSED); // Hide default focus ring
+    
     // Set user data to app name for retrieval in callback
     lv_obj_set_user_data(cont, (void*)item.name.c_str());
 
@@ -111,44 +127,36 @@ void MainMenuApp::createMenuItem(lv_obj_t* parent, const AppItem& item) {
 
         if (app && appName) {
             printf("Clicked App: %s\n", appName);
-            // Check if the clicked item is the center one? 
-            // For now, allow clicking any visible item.
-            
             if (app->getManager()) {
                 app->getManager()->pushApp(appName, nullptr);
             }
         }
     }, LV_EVENT_CLICKED, this);
 
-    // Icon
-    lv_obj_t* icon = lv_obj_create(cont);
-    lv_obj_remove_style_all(icon);
-    lv_obj_set_size(icon, 100, 100);
-    lv_obj_set_style_bg_color(icon, item.color, 0);
-    lv_obj_set_style_bg_opa(icon, LV_OPA_COVER, 0);
-    lv_obj_set_style_radius(icon, 24, 0); // Rounded corners
-    lv_obj_set_style_shadow_width(icon, 20, 0);
-    lv_obj_set_style_shadow_color(icon, lv_color_black(), 0);
-    lv_obj_set_style_shadow_opa(icon, LV_OPA_50, 0);
+    // Icon Container (transparent)
+    lv_obj_t* iconCont = lv_obj_create(cont);
+    lv_obj_remove_style_all(iconCont);
+    lv_obj_set_size(iconCont, 80, 80);
+    lv_obj_set_style_bg_opa(iconCont, LV_OPA_TRANSP, 0); // Transparent background
+    lv_obj_add_flag(iconCont, LV_OBJ_FLAG_CLICKABLE); // Ensure it captures clicks
+    lv_obj_add_flag(iconCont, LV_OBJ_FLAG_EVENT_BUBBLE); // Bubble events to parent
     
-    // Add a letter or symbol to the icon
-    lv_obj_t* letter = lv_label_create(icon);
-    char initial[3] = {0};
-    if (!item.name.empty()) {
-        initial[0] = item.name[0];
-    }
-    lv_label_set_text(letter, initial);
-    lv_obj_center(letter);
-    lv_obj_set_style_text_color(letter, lv_color_white(), 0);
-    lv_obj_set_style_text_font(letter, &lv_font_montserrat_28, 0); // Larger font
+    // Icon Symbol/Image
+    lv_obj_t* iconLabel = lv_label_create(iconCont);
+    lv_label_set_text(iconLabel, item.icon ? item.icon : "");
+    lv_obj_center(iconLabel);
+    lv_obj_set_style_text_color(iconLabel, lv_color_white(), 0);
+    // Use a large font for the symbol
+    lv_obj_set_style_text_font(iconLabel, &lv_font_montserrat_48, 0); 
+    lv_obj_add_flag(iconLabel, LV_OBJ_FLAG_EVENT_BUBBLE); // Bubble events up 
 
-    // Label
+    // App Name Label
     lv_obj_t* label = lv_label_create(cont);
     lv_label_set_text(label, item.name.c_str());
     lv_obj_set_style_text_color(label, lv_color_white(), 0);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(label, LV_PCT(100));
-    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR); 
+    lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP); 
     lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
 }
 
@@ -205,6 +213,17 @@ void MainMenuApp::onViewDidLoad() {
 }
 
 void MainMenuApp::onViewWillAppear() {
+    lv_group_t* g = lv_group_get_default();
+    if (g && _mainCont) {
+        lv_group_remove_all_objs(g);
+        uint32_t child_cnt = lv_obj_get_child_cnt(_mainCont);
+        for(uint32_t i = 0; i < child_cnt; i++) {
+            lv_group_add_obj(g, lv_obj_get_child(_mainCont, i));
+        }
+        if (child_cnt > 0) {
+            lv_group_focus_obj(lv_obj_get_child(_mainCont, 0));
+        }
+    }
 }
 
 void MainMenuApp::onViewDidAppear() {
@@ -229,6 +248,12 @@ AppBase* MainMenuFactory::createApp(const char* name) {
     }
     if (std::strcmp(name, "MainMenuApp") == 0) {
         return new MainMenuApp();
+    }
+    if (std::strcmp(name, "Clock") == 0) {
+        return new ClockApp();
+    }
+    if (std::strcmp(name, "Settings") == 0) {
+        return new SettingsApp();
     }
     return nullptr;
 }

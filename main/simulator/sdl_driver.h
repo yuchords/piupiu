@@ -13,6 +13,11 @@ extern "C" {
 void sdl_driver_init(void);
 
 /**
+ * Handle SDL events for input devices
+ */
+void sdl_driver_event_handler(SDL_Event * event);
+
+/**
  * Get the custom tick
  */
 uint32_t custom_tick_get(void);

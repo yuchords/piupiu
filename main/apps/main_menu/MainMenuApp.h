@@ -9,7 +9,7 @@
 
 struct AppItem {
     std::string name;
-    const void* icon; // Image source or symbol
+    const char* icon; // Image source or symbol
     std::string appId;
     lv_color_t color; // Placeholder color for icon background
 };
