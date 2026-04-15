@@ -1,3 +1,0 @@
-/Users/fahaxikipdd/code/piupiu/build_sim/CMakeFiles/piupiu_sim.dir
-/Users/fahaxikipdd/code/piupiu/build_sim/CMakeFiles/edit_cache.dir
-/Users/fahaxikipdd/code/piupiu/build_sim/CMakeFiles/rebuild_cache.dir
