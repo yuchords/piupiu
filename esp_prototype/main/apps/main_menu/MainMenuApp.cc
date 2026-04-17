@@ -147,7 +147,7 @@ void MainMenuApp::createMenuItem(lv_obj_t* parent, const AppItem& item) {
     lv_obj_center(iconLabel);
     lv_obj_set_style_text_color(iconLabel, lv_color_white(), 0);
     // Use a large font for the symbol
-    lv_obj_set_style_text_font(iconLabel, &lv_font_montserrat_48, 0); 
+    lv_obj_set_style_text_font(iconLabel, LV_FONT_DEFAULT, 0); 
     lv_obj_add_flag(iconLabel, LV_OBJ_FLAG_EVENT_BUBBLE); // Bubble events up 
 
     // App Name Label

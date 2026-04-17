@@ -234,7 +234,7 @@ void SettingsApp::openNetworkPage() {
         // Signal strength indicator
         if (i < 5) {
             lv_obj_t* sig = lv_label_create(item);
-            lv_label_set_text_fmt(sig, "-%ddBm", 40 + i * 15);
+            lv_label_set_text_fmt(sig, "-%lddBm", static_cast<long>(40 + i * 15));
             lv_obj_set_style_text_color(sig, lv_color_make(150, 150, 150), 0);
             lv_obj_set_style_text_font(sig, &lv_font_montserrat_14, 0);
             lv_obj_align(sig, LV_ALIGN_RIGHT_MID, -5, 0);
@@ -305,7 +305,7 @@ void SettingsApp::openSliderPage(const char* title, int32_t min, int32_t max, in
 
     // Value Label
     _sliderLabel = lv_label_create(_subPage);
-    lv_label_set_text_fmt(_sliderLabel, "%d%%", current_val);
+    lv_label_set_text_fmt(_sliderLabel, "%ld%%", static_cast<long>(current_val));
     lv_obj_set_style_text_color(_sliderLabel, lv_color_white(), 0);
     lv_obj_set_style_text_font(_sliderLabel, &lv_font_montserrat_14, 0);
     lv_obj_align_to(_sliderLabel, _slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
@@ -353,13 +353,13 @@ void SettingsApp::onSliderEvent(lv_event_t* e) {
     int32_t val = lv_slider_get_value(slider);
     
     if (app->_sliderLabel) {
-        lv_label_set_text_fmt(app->_sliderLabel, "%d%%", val);
+        lv_label_set_text_fmt(app->_sliderLabel, "%ld%%", static_cast<long>(val));
     }
     
     // Notify system about real-time value change
     if (app->_settingAct && app->_currentSetting) {
         char buf[64];
-        snprintf(buf, sizeof(buf), "%s:%d", app->_currentSetting, val);
+        snprintf(buf, sizeof(buf), "%s:%ld", app->_currentSetting, static_cast<long>(val));
         app->_settingAct->notify("SYSTEM", buf, strlen(buf) + 1);
     }
 }

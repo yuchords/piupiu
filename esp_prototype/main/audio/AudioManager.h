@@ -1,7 +1,9 @@
 #pragma once
 
-#include <Arduino.h>
-#include <ESP_I2S.h>
+#include <cstdint>
+#include "driver/i2s_std.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_afe_sr_iface.h"
 #include "esp_afe_sr_models.h"
 #include "esp_wn_iface.h"
@@ -30,7 +32,7 @@ public:
     void setWakeupCallback(WakeupCallback cb);
 
 private:
-    I2SClass _i2s;
+    i2s_chan_handle_t _i2sRxHandle;
     
     const esp_afe_sr_iface_t *_afe_handle;
     esp_afe_sr_data_t *_afe_data;

@@ -603,9 +603,9 @@ bool AppManager::switchTo(AppBase* newApp, bool isEnterAct, const AppBase::AppSt
             buf = lv_mem_alloc(stash->size);
 
             if(buf == nullptr) {
-                AM_LOG_ERROR("AppManager::switchTo: alloc stash failed, size = %d", stash->size);
+                AM_LOG_ERROR("AppManager::switchTo: alloc stash failed, size = %lu", static_cast<unsigned long>(stash->size));
             } else {
-                AM_LOG_INFO("AppManager::switchTo: alloc stash success, size = %d", stash->size);
+                AM_LOG_INFO("AppManager::switchTo: alloc stash success, size = %lu", static_cast<unsigned long>(stash->size));
             }
         } else if(newApp->_stash.size == stash->size) {
             buf = newApp->_stash.ptr;

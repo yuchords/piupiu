@@ -1,2 +1,12 @@
-@call D:\Espressif\python_env\idf5.4_py3.11_env\Scripts\activate.bat
+@echo off
+@set "PIUPIU_PROXY=http://127.0.0.1:7890"
+@set "HTTP_PROXY=%PIUPIU_PROXY%"
+@set "HTTPS_PROXY=%PIUPIU_PROXY%"
+@set "ALL_PROXY=%PIUPIU_PROXY%"
+@set "http_proxy=%PIUPIU_PROXY%"
+@set "https_proxy=%PIUPIU_PROXY%"
+@set "all_proxy=%PIUPIU_PROXY%"
+@set "NO_PROXY=127.0.0.1,localhost"
+@set "no_proxy=127.0.0.1,localhost"
+@set "PATH=D:\Espressif\python_env\idf5.4_py3.11_env\Scripts;%PATH%"
 @call D:\Espressif\frameworks\esp-idf-v5.4.1\export.bat

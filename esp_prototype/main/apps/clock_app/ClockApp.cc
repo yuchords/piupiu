@@ -104,7 +104,7 @@ void ClockApp::onViewLoad() {
     // Time Label (Center, Large)
     _timeLabel = lv_label_create(root);
     lv_obj_set_style_text_color(_timeLabel, lv_color_make(0, 255, 255), 0); // Cyan
-    lv_obj_set_style_text_font(_timeLabel, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_font(_timeLabel, LV_FONT_DEFAULT, 0);
     lv_obj_align(_timeLabel, LV_ALIGN_CENTER, 0, -20);
     
     // Date Label (Below Time)
